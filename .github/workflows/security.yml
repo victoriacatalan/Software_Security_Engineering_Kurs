@@ -70,5 +70,16 @@ jobs:
   truffle:
     name: TruffleHog
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - run: echo "Implement trufflehog scan"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Run TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'HEAD' }}
+          extra_args: --results=verified,unknown
