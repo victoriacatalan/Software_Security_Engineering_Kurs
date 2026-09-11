@@ -17,10 +17,20 @@ RUN mvn clean package -DskipTests
 # Stage 2: Create the runtime image
 FROM eclipse-temurin:17-jre-alpine
 
+# Remove unneeded package index/cache and any pre-installed shells/tools we don't need,
+# keeping the image minimal. wget (used by HEALTHCHECK) ships via busybox already.
+RUN apk --no-cache upgrade
+
+# Create a dedicated non-root, non-login user/group to run the application.
+RUN addgroup -S appgroup && adduser -S -G appgroup -H -D appuser
+
 WORKDIR /app
 
-# Copy the built JAR from the builder stage
-COPY --from=builder /build/target/todo-app-1.0.0.jar app.jar
+# Copy the built JAR from the builder stage, owned by the non-root user.
+COPY --from=builder --chown=appuser:appgroup /build/target/todo-app-1.0.0.jar app.jar
+
+# Drop privileges before running the application.
+USER appuser:appgroup
 
 # Expose the port
 EXPOSE 8080
